@@ -9,10 +9,8 @@ DATASEG
 	Xp dw ?
 	Yp dw ?
 	SquareSize dw 7
-	
 	ErrorFile db 0
 	
- 
     ScrLine db  320 dup(?)  ; One Color line read buffer
 	
 	;BMP File data
@@ -37,9 +35,7 @@ DATASEG
 	BmpTop dw ?
 	BmpColSize dw ?
 	BmpRowSize dw ?
-	
 
-	
 	PersonUpDown dw 10
 	PersonRightLeft dw 40
 	
@@ -49,24 +45,18 @@ DATASEG
 	
 	loopCnt dw 1
 	finish db 0
-
 ; --------------------------
-
 CODESEG
 
 start:
     mov ax, @data
     mov ds, ax
-	
-	
-
 	call setGraphic
 	call CheckIfPlayerStart
 	call road_stage1
 	
 StartLoop:
 
-	
 mainLoop:
 
 	call moveCars
@@ -75,43 +65,28 @@ mainLoop:
 	call Check_Collision_All
 	cmp ax, 1 ; collision
 	je endGame
-	
-
 c1:
-
-	
 	cmp [word PersonUpDown], 175
 	jae victory
-	
 c2:
-	
-	
 	inc [loopCnt]
 	cmp [finish] , 1
 	jne mainLoop
 	jmp endLoop
-	
-	
-	
 endGame:
 	call Loser_screen
-	
 escape1:	  
 	  call CheckAndReadKey
 	  cmp al, 'q'
 	  jne escape1
 	  jmp endLoop 
-	  
 victory:
 	call Victory_screen
-	
 escape2:	  
 	  call CheckAndReadKey
 	  cmp al, 'q'
 	  jne escape2
 	  jmp endLoop 
-	  
-	  
 endLoop:
 
 mov ah, 7
@@ -123,17 +98,14 @@ int 10h
 
 @@quit:
 ; --------------------------
-
 exit:
     mov ax, 4c00h
     int 21h
-
 ; --------------------------
 ;input: carsX, dx - filename, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
 ;output: אין
 ; --------------------------
 proc moveCars
-	
 	mov dx, offset FileName3 
 	mov ax,	[carsX + 0]
 	mov [BmpLeft], ax
@@ -143,14 +115,12 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-		
 	test [loopCnt], 1 ;בודק כל פעם כשהמספר מתחלק בשמונה להזיז את המכונית
 	jnz @@c2
 	inc [carsX + 0]
 	cmp [word carsX + 0], 320
 	jnz @@c2
 	mov [carsX + 0], 0
-	
 @@c2:	
 	mov dx, offset FileName2
 	mov ax,	[carsX + 22]
@@ -161,7 +131,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 5 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c3
@@ -169,7 +138,6 @@ proc moveCars
 	cmp [word carsX + 22], 0
 	jnz @@c3
 	mov [carsX + 22], 320
-	
 @@c3:	
 	mov dx, offset FileName1
 	mov ax,	[carsX + 10]
@@ -180,7 +148,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 3 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c4
@@ -188,7 +155,6 @@ proc moveCars
 	cmp [word carsX + 10], 320
 	jnz @@c4
 	mov [carsX + 10], 0
-	
 @@c4:	
 	mov dx, offset FileName3 
 	mov ax,	[carsX + 24]
@@ -199,14 +165,12 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-		
 	test [loopCnt], 3 ;בודק כל פעם כשהמספר מתחלק בשמונה להזיז את המכונית
 	jnz @@c5
 	inc [carsX + 24]
 	cmp [word carsX + 24], 320
 	jnz @@c5
 	mov [carsX + 24], 0
-	
 @@c5:	
 	mov dx, offset FileName1
 	mov ax,	[carsX + 16]
@@ -217,7 +181,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c6
@@ -225,7 +188,6 @@ proc moveCars
 	cmp [word carsX + 16], 320
 	jnz @@c6
 	mov [carsX + 16], 0
-	
 @@c6:
 	mov dx, offset FileName4
 	mov ax,	[carsX + 28]
@@ -236,7 +198,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c7
@@ -244,7 +205,6 @@ proc moveCars
 	cmp [word carsX + 28], 320
 	jnz @@c7
 	mov [carsX + 28], 0
-	
 @@c7:
 	mov dx, offset FileName2
 	mov ax,	[carsX + 8]
@@ -255,7 +215,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c8
@@ -263,7 +222,6 @@ proc moveCars
 	cmp [word carsX + 8], 0
 	jnz @@c8
 	mov [carsX + 8], 320
-	
 @@c8:
 	mov dx, offset FileName4
 	mov ax,	[carsX + 18]
@@ -274,7 +232,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1 ; פעם כשהמספר מתחלק בשמונה להזיז את המכונית (חייב להיות מספר כפול 2 פחות אחד)
 	
 	jnz @@c9
@@ -282,8 +239,6 @@ proc moveCars
 	cmp [word carsX + 18], 320
 	jnz @@c9
 	mov [carsX + 18], 0
-	
-	
 @@c9:
 	mov dx, offset FileName5
 	mov ax,	[carsX + 6]
@@ -294,7 +249,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1
 	
 	jnz @@c10
@@ -302,7 +256,6 @@ proc moveCars
 	cmp [word carsX + 6], 0
 	jnz @@c10
 	mov [carsX + 6], 320
-	
 @@c10:
 	mov dx, offset FileName5
 	mov ax,	[carsX + 20]
@@ -313,7 +266,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 3
 	
 	jnz @@c11
@@ -321,8 +273,6 @@ proc moveCars
 	cmp [word carsX + 20], 0
 	jnz @@c11
 	mov [carsX + 20], 320
-	
-	
 @@c11:
 	mov dx, offset FileName6
 	mov ax,	[carsX + 30]
@@ -333,7 +283,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1
 	
 	jnz @@c12
@@ -341,7 +290,6 @@ proc moveCars
 	cmp [word carsX + 30], 320
 	jnz @@c12
 	mov [carsX + 30], 0
-	
 @@c12:
 	mov dx, offset FileName6
 	mov ax,	[carsX + 2]
@@ -360,7 +308,6 @@ proc moveCars
 	cmp [word carsX + 2], 320
 	jnz @@c13
 	mov [carsX + 2], 0
-	
 @@c13:	
 	mov dx, offset FileName7 ; משהו במכונית הזאת תוקע את התוכנית ואני לא מבינה למה
 	mov ax,	[carsX + 4]
@@ -371,7 +318,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1
 	
 	jnz @@c14
@@ -379,7 +325,6 @@ proc moveCars
 	cmp [word carsX + 4], 0
 	jnz @@c14
 	mov [carsX + 4], 320
-	
 @@c14:	
 	mov dx, offset FileName3 
 	mov ax,	[carsX + 12]
@@ -390,7 +335,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 3
 	
 	jnz @@c15
@@ -398,7 +342,6 @@ proc moveCars
 	cmp [word carsX + 12], 320
 	jnz @@c15
 	mov [carsX + 12], 0
-	
 @@c15:	
 	mov dx, offset FileName6
 	mov ax,	[carsX + 14]
@@ -409,7 +352,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 3
 	
 	jnz @@c16
@@ -417,8 +359,6 @@ proc moveCars
 	cmp [word carsX + 14], 320
 	jnz @@c16
 	mov [carsX + 14], 0
-	
-	
 @@c16:	
 	mov dx, offset FileName4
 	mov ax,	[carsX + 26]
@@ -429,7 +369,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 3
 	
 	jnz @@c17
@@ -437,8 +376,6 @@ proc moveCars
 	cmp [word carsX + 26], 320
 	jnz @@c17
 	mov [carsX + 26], 0
-
-	
 @@c17:	
 	mov dx, offset FileName1
 	mov ax,	[carsX + 32]
@@ -449,7 +386,6 @@ proc moveCars
 		
 	call OpenShowBmp
 	
-	
 	test [loopCnt], 1
 	
 	jnz @@ret
@@ -457,19 +393,16 @@ proc moveCars
 	cmp [word carsX + 32], 320
 	jnz @@ret
 	mov [carsX + 32], 0
-	
 @@ret:
 call road_stage1
 
 	ret
 endp moveCars
-
 ; --------------------------	
 ; input: carsY, carsX, carsLen, TT- x, y
 ;output: ax = 1 collision, ax = 0 not collision
 ; --------------------------
 proc Check_Collision_All 
-
 	push cx
 	push bx
 	push dx
