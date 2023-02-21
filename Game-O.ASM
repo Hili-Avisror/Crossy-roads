@@ -24,7 +24,10 @@ DATASEG
 	FileName6 db 'pinkCar.bmp', 0 
 	FileName7 db 'purCar2.bmp', 0 
 
+	TT db 'TT.bmp' ,0 
 	CrossRoadStart db 'crosRoad.bmp', 0 ;start view
+	CrossRoadLoser db 'LScreen.bmp', 0 ; screen when u loose
+	CrossRoadWinner db 'Wscreen.bmp', 0
 	BlackScreen db 'BScreen.bmp' ,0 
  
 	FileHandle	dw ?
@@ -54,6 +57,8 @@ CODESEG
 start:
     mov ax, @data
     mov ds, ax
+	
+	
 
 	call setGraphic
 	call CheckIfPlayerStart
@@ -61,38 +66,50 @@ start:
 	
 StartLoop:
 
+	
 mainLoop:
+
 	call moveCars
+	call Check_If_TT_Move
+	call Draw_Person
+	call Check_Collision_All
 	cmp ax, 1 ; collision
 	je endGame
 	
 
 c1:
+
+	
 	cmp [word PersonUpDown], 175
 	jae victory
 	
 c2:
+	
+	
 	inc [loopCnt]
 	cmp [finish] , 1
 	jne mainLoop
 	jmp endLoop
 	
+	
+	
 endGame:
-
+	call Loser_screen
 	
 escape1:	  
 	  call CheckAndReadKey
 	  cmp al, 'q'
 	  jne escape1
-	  jmp endLoop ;to escape
+	  jmp endLoop 
 	  
 victory:
+	call Victory_screen
 	
 escape2:	  
 	  call CheckAndReadKey
 	  cmp al, 'q'
 	  jne escape2
-	  jmp endLoop ;to escape
+	  jmp endLoop 
 	  
 	  
 endLoop:
@@ -104,12 +121,13 @@ mov ah, 0
 mov al, 2
 int 10h
 
-; --------------------------
 @@quit:
 ; --------------------------
+
 exit:
     mov ax, 4c00h
     int 21h
+
 ; --------------------------
 ;input: carsX, dx - filename, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
 ;output: אין
@@ -353,6 +371,7 @@ proc moveCars
 		
 	call OpenShowBmp
 	
+	
 	test [loopCnt], 1
 	
 	jnz @@c14
@@ -439,17 +458,16 @@ proc moveCars
 	jnz @@ret
 	mov [carsX + 32], 0
 	
-	
 @@ret:
 call road_stage1
 
 	ret
 endp moveCars
+
 ; --------------------------	
 ; input: carsY, carsX, carsLen, TT- x, y
 ;output: ax = 1 collision, ax = 0 not collision
 ; --------------------------
-
 proc Check_Collision_All 
 
 	push cx
@@ -467,7 +485,7 @@ proc Check_Collision_All
 	add dx, 15
 	push dx
 	mov dx, [PersonUpDown]
-	add dx, 20 
+	add dx, 20 ;אולי זה צריך להיות sub?
 	push dx
 	
 	
@@ -480,7 +498,7 @@ proc Check_Collision_All
 	add dx, 15
 	push dx
 	
-
+	call aabb
 	cmp ax, 1
 	jz @@ret
 	
@@ -497,12 +515,74 @@ proc Check_Collision_All
 
 	ret
 endp Check_Collision_All
-	
+
+; --------------------------
+;input: ax- value you want
+;output: אין
+; --------------------------
+proc ShowAxDecimal
+	   push ax
+       push bx
+	   push cx
+	   push dx
+	   
+	   ; check if negative
+	   test ax,08000h
+	   jz PositiveAx
+			
+	   ;  put '-' on the screen
+	   push ax
+	   mov dl,'-'
+	   mov ah,2
+	   int 21h
+	   pop ax
+
+	   neg ax ; make it positive
+PositiveAx:
+       mov cx,0   ; will count how many time we did push 
+       mov bx,10  ; the divider
+   
+put_mode_to_stack:
+       xor dx,dx
+       div bx
+       add dl,30h
+	   ; dl is the current LSB digit 
+	   ; we cant push only dl so we push all dx
+       push dx    
+       inc cx
+       cmp ax,9   ; check if it is the last time to div
+       jg put_mode_to_stack
+
+	   cmp ax,0
+	   jz pop_next  ; jump if ax was totally 0
+       add al,30h  
+	   mov dl, al    
+  	   mov ah, 2h
+	   int 21h        ; show first digit MSB
+	       
+pop_next: 
+       pop ax    ; remove all rest LIFO (reverse) (MSB to LSB)
+	   mov dl, al
+       mov ah, 2h
+	   int 21h        ; show all rest digits
+       loop pop_next
+		
+	   mov dl, ','
+       mov ah, 2h
+	   int 21h
+   
+	   pop dx
+	   pop cx
+	   pop bx
+	   pop ax
+	   
+	   ret
+endp ShowAxDecimal
+
 ; --------------------------
 ;input: cx=x dx=y al = color  si = Length
 ;output: אין
 ; --------------------------
-
 proc road_stage1 ;build the roads in stage1
 
 	mov cx, 0
@@ -528,28 +608,21 @@ proc road_stage1 ;build the roads in stage1
 	mov al, 7
 	mov si, 320
 	call DrawHorizontalLine
-
-
-
+	
 ret
 endp road_stage1
-
-
 
 ; --------------------------
 ;input: אין
 ;output: אין
 ; --------------------------
 proc setGraphic ; set grafic mod
-
 	mov ax,13h   ; 320 X 200 
 				 ;Mode 13h is an IBM VGA BIOS mode. It is the specific standard 256-color mode 
 	int 10h
 	ret
 	
 endp SetGraphic
-	
-
 
 ; --------------------------
 ;input: אין
@@ -570,7 +643,113 @@ proc CheckAndReadKey
 	  ret
 endp CheckAndReadKey
 
+proc Check_If_TT_Move
 
+	call CheckAndReadKey
+	jz @@return
+	jmp @@cEsc
+	
+@@stop:
+	  push ax
+	  mov al, ah
+	  mov ah, 0
+	  call ShowAxDecimal
+	  pop ax
+	  
+@@cEsc:	  
+	  cmp al, 'q'
+	  jne @@c
+	  mov [finish], 1 ;to escape
+	  jmp @@return
+	  
+@@c:
+	  cmp al, 'w' ; check if up
+	  jnz @@c1
+	  dec [PersonUpDown]
+	  jmp @@return
+	  
+@@c1:
+	  cmp al, 's' ; check if down
+	  jne @@c2
+	  inc [PersonUpDown]
+	  jmp @@return
+	  
+@@c2:  
+	  cmp al, 'a' ; check if left
+	  jne @@c3
+	  dec [PersonRightLeft]
+	  jmp @@return
+	  
+@@c3:
+	  cmp al, 'd' ; check if right
+	  jne @@return
+	  inc [PersonRightLeft]
+	  jmp @@return
+
+		
+@@return:
+	  
+	  ret
+endp Check_If_TT_Move
+
+; --------------------------
+;input: dx - filename, BmpColSize - רוחב, BmpRowSize - אורך, PersonRightLeft, PersonUpDown
+;output: אין
+; --------------------------
+proc Draw_Person
+
+	  mov dx, offset TT
+      mov ax,	[PersonRightLeft]
+	  mov [BmpLeft], ax
+	  mov ax, [PersonUpDown]
+	  mov [BmpTop], ax
+	  mov [BmpColSize], 15
+	  mov [BmpRowSize], 20
+		
+	  call OpenShowBmp
+
+	ret
+endp Draw_Person 
+	    
+; --------------------------
+;input: dx - filename, BmpLeft - x, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
+;output: אין
+; --------------------------	  
+proc Loser_screen
+
+	  mov dx, offset CrossRoadLoser
+      mov [BmpLeft],0
+	  mov [BmpTop],0
+	  mov [BmpColSize],320
+	  mov [BmpRowSize],200
+	  
+	  call OpenShowBmp
+	  
+	 ret
+endp Loser_screen
+	    
+; --------------------------
+;input: dx - filename,BmpLeft - x, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
+;output: אין
+; --------------------------
+proc Victory_screen
+
+	  mov dx, offset CrossRoadWinner ;לשנות לתמונה של ניצחון
+      mov [BmpLeft],0
+	  mov [BmpTop],0
+	  mov [BmpColSize],320
+	  mov [BmpRowSize],200
+	  
+	  call OpenShowBmp
+@@c1:	  
+	  call CheckAndReadKey
+	  cmp ah, 1
+	  jne @@c1
+	  mov [finish], 1 ;to escape
+
+	ret
+endp Victory_screen
+  
 ; --------------------------
 ;input: dx - filename,BmpLeft - x, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך, cx = col dx= row al = color si = height di = width (for rect)
 ;output: אין
@@ -578,7 +757,6 @@ endp CheckAndReadKey
 proc CheckIfPlayerStart
 
 @@open:
-
 	push dx
 	push ax
 	push bx
@@ -597,10 +775,7 @@ proc CheckIfPlayerStart
 	cmp al ,'s'
 	jne @@open
 	
-	
 @@startGame:
-
-	
 	pop cx 
 	pop bx
 	pop ax  
@@ -612,18 +787,15 @@ proc CheckIfPlayerStart
 	mov si,200
 	mov di,320
 	call Rect
-
-
-
+	
 ret
 endp CheckIfPlayerStart
-
 
  ; --------------------------
 ;input: cx = col dx= row al = color si = height di = width 
 ;output: אין
 ; --------------------------
-proc Rect 
+proc Rect
 	push cx
 	push di
 NextVerticalLine:	
@@ -638,7 +810,6 @@ NextVerticalLine:
 	dec di
 	jmp NextVerticalLine
 	
-	
 @@EndRect:
 	pop di
 	pop cx
@@ -649,7 +820,6 @@ endp Rect
 ;input: cx=x dx=y al = color  si = Length
 ;output: אין
 ; --------------------------
-	
 proc DrawHorizontalLine	
 	push si
 	push cx
@@ -659,12 +829,10 @@ DrawLine:
 	 
     mov ah,0ch	
 	int 10h    ; put pixel  cx=x dx=y al = color  si = Length
-	 
 	
 	inc cx
 	dec si
 	jmp DrawLine
-	
 	
 ExitDrawLine:
 	pop cx
@@ -672,14 +840,10 @@ ExitDrawLine:
 	ret
 endp DrawHorizontalLine
 	
-	
-	
-	
 ; --------------------------
 ;input: cx=x dx=y al = color  si = Length
 ;output: אין
 ; --------------------------
-	
 proc DrawVerticalLine	near
 	push si
 	push dx
@@ -691,12 +855,9 @@ DrawVertical:
     mov ah,0ch	
 	int 10h    ; put pixel
 	
-	 
-	
 	inc dx
 	dec si
 	jmp DrawVertical
-	
 	
 @@ExitDrawLine:
 	pop dx
@@ -704,11 +865,9 @@ DrawVertical:
 	ret
 endp DrawVerticalLine
 	
-	
 ; --------------------------
 ;input: dx - filename,BmpLeft - x, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
 ;output: Ax is file handle, Error: set errorFile 1
-
 ; --------------------------	
 proc OpenShowBmp near
 	
@@ -730,11 +889,6 @@ proc OpenShowBmp near
 	ret
 endp OpenShowBmp
 
-
-; --------------------------
-;input: FileHandle
-;output: אין
-; --------------------------
 ; Read 54 bytes the Header
 proc ReadBmpHeader	near					
 	push cx
@@ -751,11 +905,6 @@ proc ReadBmpHeader	near
 	ret
 endp ReadBmpHeader
 
-
-; --------------------------
-;input: אין
-;output: אין
-; --------------------------
 proc ReadBmpPalette near ; Read BMP file color palette, 256 colors * 4 bytes (400h)
 						 ; 4 bytes for each color BGR + null)			
 	push cx
@@ -772,13 +921,6 @@ proc ReadBmpPalette near ; Read BMP file color palette, 256 colors * 4 bytes (40
 	ret
 endp ReadBmpPalette
 
-
-
-; --------------------------
-;input: אין
-;output: אין
-; --------------------------
-; --------------------------
 ; Will move out to screen memory the colors
 ; video ports are 3C8h for number of first color
 ; and 3C9h for all rest
@@ -813,12 +955,6 @@ CopyNextColor:
 	ret
 endp CopyBmpPalette
 
-
-
-; --------------------------
-;input: BmpLeft - x, BmpTop - y, BmpColSize - רוחב, BmpRowSize - אורך
-;output: אין
-; --------------------------
 proc ShowBMP 
 ; BMP graphics are saved upside-down.
 ; Read the graphic line by line (BmpRowSize lines in VGA format),
@@ -829,7 +965,6 @@ proc ShowBMP
 	mov es, ax
 	
 	mov cx,[BmpRowSize]
-	
  
 	mov ax,[BmpColSize] ; row size must dived by 4 so if it less we must calculate the extra padding bytes
 	xor dx,dx
@@ -850,7 +985,6 @@ proc ShowBMP
 	
 	mov di,cx  ; Current Row at the small bmp (each time -1)
 	add di,[BmpTop] ; add the Y on entire screen
-	
  
 	; next 5 lines  di will be  = cx*320 + dx , point to the correct screen line
 	dec di
@@ -881,10 +1015,6 @@ proc ShowBMP
 	ret
 endp ShowBMP 
 
-; --------------------------
-;input: FileHandle
-;output: אין
-; --------------------------
 proc CloseBmpFile near
 	mov ah,3Eh
 	mov bx, [FileHandle]
@@ -892,10 +1022,6 @@ proc CloseBmpFile near
 	ret
 endp CloseBmpFile
 
-; --------------------------
-;input: FileHandle
-;output: אין
-; --------------------------
 ; input dx filename to open
 proc OpenBmpFile	near						 
 	mov ah, 3Dh
@@ -911,4 +1037,49 @@ proc OpenBmpFile	near
 	ret
 endp OpenBmpFile
 
-end start
+; --------------------------
+;input: ParamAX1, ParamAY1, ParamAX2, ParamAY2, ParamBX1, ParamBY1, ParamBX2, ParamBY2 (דרך המחסנית)
+;output: ax=1 - collision, ax=0 - not collision
+; --------------------------	
+ParamAX1 equ   [word bp+18]
+ParamAY1 equ   [word bp+16]
+ParamAX2 equ   [word bp+14]
+ParamAY2 equ   [word bp+12]
+
+ParamBX1 equ   [word bp+10]
+ParamBY1 equ   [word bp+8]
+ParamBX2 equ   [word bp+6]
+ParamBY2 equ   [word bp+4]
+
+proc aabb 
+	push bp     ; save bp
+	mov bp,sp   ; parameters and locals pointer
+	push dx
+	mov ax ,1
+	
+	mov dx , ParamAX2
+	cmp dx, ParamBX1
+	jb @@NotCollision
+	
+	mov dx , ParamBX2
+	cmp dx, ParamAX1
+	jb @@NotCollision
+	
+	mov dx , ParamAY2
+	cmp dx, ParamBY1
+	jb @@NotCollision
+	
+	mov dx , ParamBY2
+	cmp dx, ParamAY1
+	jb @@NotCollision
+	jmp @@ret
+@@NotCollision:
+	mov ax ,0
+
+@@ret:
+	pop dx 
+	pop bp     
+	ret 16
+endp aabb
+	
+END start
